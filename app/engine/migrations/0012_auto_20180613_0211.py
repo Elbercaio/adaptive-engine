@@ -5,16 +5,16 @@ import uuid
 
 
 def gen_uuid(apps, schema_editor):
-    Collection = apps.get_model('engine', 'Collection')
+    Collection = apps.get_model("engine", "Collection")
     for row in Collection.objects.all():
         row.collection_id = uuid.uuid4()
-        row.save(update_fields=['collection_id'])
+        row.save(update_fields=["collection_id"])
 
 
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('engine', '0011_collection_collection_id'),
+        ("engine", "0011_collection_collection_id"),
     ]
 
     operations = [

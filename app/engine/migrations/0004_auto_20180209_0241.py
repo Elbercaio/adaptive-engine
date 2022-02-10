@@ -4,19 +4,21 @@ from __future__ import unicode_literals
 
 from django.db import migrations
 
+
 def make_many_collections(apps, schema_editor):
     """
     Adds the Collection object in Activity.collection to the
     many-to-many relationship in Activity.collections
     """
-    Activity = apps.get_model('engine','Activity')
+    Activity = apps.get_model("engine", "Activity")
     for activity in Activity.objects.all():
         activity.collections.add(activity.collection)
+
 
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('engine', '0003_auto_20180209_0240'),
+        ("engine", "0003_auto_20180209_0240"),
     ]
 
     operations = [

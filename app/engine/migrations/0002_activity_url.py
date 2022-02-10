@@ -8,13 +8,13 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('engine', '0001_initial'),
+        ("engine", "0001_initial"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='activity',
-            name='url',
-            field=models.CharField(default='', max_length=500),
+            model_name="activity",
+            name="url",
+            field=models.CharField(default="", max_length=500),
         ),
     ]

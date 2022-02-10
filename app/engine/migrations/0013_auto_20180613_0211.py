@@ -7,13 +7,13 @@ import uuid
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('engine', '0012_auto_20180613_0211'),
+        ("engine", "0012_auto_20180613_0211"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='collection',
-            name='collection_id',
+            model_name="collection",
+            name="collection_id",
             field=models.CharField(max_length=200, unique=True),
             preserve_default=False,
         ),

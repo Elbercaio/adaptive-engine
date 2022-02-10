@@ -6,14 +6,14 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('engine', '0009_auto_20180520_1840'),
+        ("engine", "0009_auto_20180520_1840"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='knowledgecomponent',
-            name='kc_id',
-            field=models.CharField(default='default', max_length=200, unique=True),
+            model_name="knowledgecomponent",
+            name="kc_id",
+            field=models.CharField(default="default", max_length=200, unique=True),
             preserve_default=False,
         )
     ]

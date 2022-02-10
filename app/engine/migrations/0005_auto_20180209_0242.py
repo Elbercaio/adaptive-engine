@@ -8,17 +8,17 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('engine', '0004_auto_20180209_0241'),
+        ("engine", "0004_auto_20180209_0241"),
     ]
 
     operations = [
         migrations.RemoveField(
-            model_name='activity',
-            name='collection',
+            model_name="activity",
+            name="collection",
         ),
         migrations.AlterField(
-            model_name='activity',
-            name='collections',
-            field=models.ManyToManyField(blank=True, to='engine.Collection'),
+            model_name="activity",
+            name="collections",
+            field=models.ManyToManyField(blank=True, to="engine.Collection"),
         ),
     ]

@@ -7,14 +7,12 @@ from .models import *
 
 class ActivityInline(admin.TabularInline):
     model = Collection.activity_set.through
-    readonly_fields = ['activity']
+    readonly_fields = ["activity"]
 
 
 @admin.register(Collection)
 class CollectionAdmin(admin.ModelAdmin):
-    inlines = [
-        ActivityInline
-    ]
+    inlines = [ActivityInline]
 
 
 admin.site.register(Activity)

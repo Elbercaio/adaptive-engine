@@ -6,13 +6,13 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('engine', '0014_auto_20180613_0239'),
+        ("engine", "0014_auto_20180613_0239"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='activity',
-            name='prerequisite_activities',
-            field=models.ManyToManyField(blank=True, to='engine.Activity'),
+            model_name="activity",
+            name="prerequisite_activities",
+            field=models.ManyToManyField(blank=True, to="engine.Activity"),
         ),
     ]

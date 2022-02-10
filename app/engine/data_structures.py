@@ -5,7 +5,7 @@ import numpy as np
 from collections import namedtuple
 
 
-Axes = namedtuple('Axes', ['row', 'col'])
+Axes = namedtuple("Axes", ["row", "col"])
 
 
 class Axis(object):
@@ -15,6 +15,7 @@ class Axis(object):
     TODO consider changing qset attribute name... can be either queryset or model instance
     TODO maybe constructor could take (field) instead of (name, model)
     """
+
     def __init__(self, name, model, qset=None):
         """
         :param name: str, field name of the model foreignkey field
@@ -30,14 +31,15 @@ class Axis(object):
         if self.qset is not None:
             return self.qset
         else:
-            return self.model.objects.all().order_by('pk')
+            return self.model.objects.all().order_by("pk")
 
 
 class Vector(object):
     """
     Vector data structure that wraps a django model
     """
-    def __init__(self, model, axis, slice_axis, value_field='value'):
+
+    def __init__(self, model, axis, slice_axis, value_field="value"):
         """
         :param model: model instance
         :param axis: Axis object instance
@@ -59,14 +61,14 @@ class Vector(object):
         if self.axis.qset:
             filters = {
                 self.axis.name + "__in": self.axis.qset,
-                self.slice_axis.name: self.slice_axis.qset
+                self.slice_axis.name: self.slice_axis.qset,
             }
             qset = qset.filter(**filters)
         return qset
 
     def values(self):
         """
-        Return 1-d numpy array of raw values, using 'value' field 
+        Return 1-d numpy array of raw values, using 'value' field
         (or custom field specified by vector.value_field)
         """
         # mapping from pk to corresponding 0-index in axis
@@ -89,13 +91,9 @@ class Vector(object):
         """
         # get or create, some objects may not exist yet
         for i, idx in enumerate(self.axis.index):
-            filters = {
-                self.axis.name: idx,
-                self.slice_axis.name: self.slice_axis.index
-            }
+            filters = {self.axis.name: idx, self.slice_axis.name: self.slice_axis.index}
             self.model.objects.update_or_create(
-                **filters,
-                defaults={self.value_field: new_values[i]}
+                **filters, defaults={self.value_field: new_values[i]}
             )
 
     def length(self):
@@ -107,7 +105,7 @@ class Matrix(object):
     Matrix data structure that wraps a django model
     """
 
-    def __init__(self, model, indices=None, value_field='value'):
+    def __init__(self, model, indices=None, value_field="value"):
         """
         :param model: model class
         :param indices: tuple/list of queryset or object instances
@@ -124,7 +122,7 @@ class Matrix(object):
             # assumption:
             # first field defined in model definition is row field, col field is defined second
             # model._meta.get_fields()[1] is row field, [2] is col index
-            field = self.model._meta.get_fields()[i+1]
+            field = self.model._meta.get_fields()[i + 1]
             model = field.remote_field.model
             qset = indices[i] if indices is not None else None
             axes.append(Axis(name=field.name, model=model, qset=qset))
@@ -176,7 +174,9 @@ class Matrix(object):
         # placeholder matrix to populate values in
         output_matrix = np.full(self.shape(), np.nan)
 
-        for row_pk, col_pk, value in self.qset.values_list(self.axes.row.name, self.axes.col.name, self.value_field):
+        for row_pk, col_pk, value in self.qset.values_list(
+            self.axes.row.name, self.axes.col.name, self.value_field
+        ):
             # convert pk's to index along axes (0-indexed)
             row_idx = row_axis_map[row_pk]
             col_idx = col_axis_map[col_pk]
@@ -194,7 +194,7 @@ class Matrix(object):
         filters = {}
         for axis in self.axes:
             if axis.qset:
-                filters[axis.name+"__in"] = axis.qset
+                filters[axis.name + "__in"] = axis.qset
         if filters:
             qset = qset.filter(**filters)
 
@@ -213,13 +213,9 @@ class Matrix(object):
         # get or create, some objects may not exist yet
         for i, row_idx in enumerate(self.axes.row.index):
             for j, col_idx in enumerate(self.axes.col.index):
-                filters = {
-                    self.axes.row.name: row_idx,
-                    self.axes.col.name: col_idx
-                }
+                filters = {self.axes.row.name: row_idx, self.axes.col.name: col_idx}
                 self.model.objects.update_or_create(
-                    **filters,
-                    defaults={self.value_field: new_values[i, j]}
+                    **filters, defaults={self.value_field: new_values[i, j]}
                 )
 
         multiple_update(self.qset, self.value_field, new_values.flatten())
@@ -268,7 +264,7 @@ class Matrix(object):
                 if isinstance(idx, Model):
                     filters[a.name] = idx
                 elif isinstance(idx, QuerySet):
-                    filters[a.name+"__in"] = idx
+                    filters[a.name + "__in"] = idx
             # construct axis objects for new Vector
             if single_row:
                 axis = self.axes.col
@@ -286,10 +282,7 @@ class Matrix(object):
         # reduce to single value
         elif single_row and single_col:
             # create filters to apply to queryset
-            filters = {
-                self.axes.row.name: indices[0],
-                self.axes.col.name: indices[1]
-            }
+            filters = {self.axes.row.name: indices[0], self.axes.col.name: indices[1]}
             try:
                 instance = self.model.objects.get(**filters)
             except self.model.DoesNotExist:
@@ -297,7 +290,7 @@ class Matrix(object):
             return getattr(instance, self.value_field)
 
         else:
-            return ValueError('Invalid array indexing attempted')
+            return ValueError("Invalid array indexing attempted")
 
 
 def value_index_map(array):
@@ -320,7 +313,7 @@ def pk_index_map(qset):
     :param qset: queryset
     :return: dict
     """
-    return value_index_map(qset.values_list('pk', flat=True))
+    return value_index_map(qset.values_list("pk", flat=True))
 
 
 def convert_pk_to_index(pk_tuples, indices):

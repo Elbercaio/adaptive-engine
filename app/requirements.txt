@@ -4,6 +4,7 @@ numpy==1.14.0
 requests==2.20.0
 gunicorn==19.7.1
 psycopg2==2.7.4
+pymysql
 alosi==2.1.1
 django_extensions==1.9.9
 pandas==0.22.0
@@ -12,3 +13,4 @@ pytest
 pytest-django
 boto3==1.9.29
 django-filter==2.0.0
+cryptography

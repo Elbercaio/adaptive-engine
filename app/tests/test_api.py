@@ -13,7 +13,7 @@ def test_collection(db):
     :param db: https://pytest-django.readthedocs.io/en/latest/helpers.html#db
     :return: Collection model instance
     """
-    collection = Collection.objects.create(collection_id='test_collection',name='foo')
+    collection = Collection.objects.create(collection_id="test_collection", name="foo")
     return collection
 
 
@@ -24,7 +24,9 @@ def knowledge_component(db):
     :param db:
     :return: knowledge component model instance
     """
-    return KnowledgeComponent.objects.create(kc_id='kc_id',name='kc name',mastery_prior=0.5)
+    return KnowledgeComponent.objects.create(
+        kc_id="kc_id", name="kc name", mastery_prior=0.5
+    )
 
 
 @pytest.fixture
@@ -35,19 +37,11 @@ def knowledge_components(db):
     :return: queryset
     """
     objects = [
-        KnowledgeComponent(
-            kc_id='kc1',
-            name='kc 1',
-            mastery_prior=0.5
-        ),
-        KnowledgeComponent(
-            kc_id='kc2',
-            name='kc 2',
-            mastery_prior=0.6
-        ),
+        KnowledgeComponent(kc_id="kc1", name="kc 1", mastery_prior=0.5),
+        KnowledgeComponent(kc_id="kc2", name="kc 2", mastery_prior=0.6),
     ]
     KnowledgeComponent.objects.bulk_create(objects)
-    return KnowledgeComponent.objects.filter(kc_id__in=['kc1','kc2'])
+    return KnowledgeComponent.objects.filter(kc_id__in=["kc1", "kc2"])
 
 
 @pytest.fixture
@@ -59,16 +53,18 @@ def activities(db):
     """
     objects = [
         Activity(
-            url='http://example.com/1',
-            name='activity 1',
+            url="http://example.com/1",
+            name="activity 1",
         ),
         Activity(
-            url='http://example.com/2',
-            name='activity 2',
+            url="http://example.com/2",
+            name="activity 2",
         ),
     ]
     Activity.objects.bulk_create(objects)
-    return Activity.objects.filter(url__in=['http://example.com/1','http://example.com/2'])
+    return Activity.objects.filter(
+        url__in=["http://example.com/1", "http://example.com/2"]
+    )
 
 
 def test_recommend(engine_api, test_collection):
@@ -78,12 +74,9 @@ def test_recommend(engine_api, test_collection):
     :param test_collection: Collection model instance
     """
     r = engine_api.recommend(
-        learner=dict(
-            user_id='my_user_id',
-            tool_consumer_instance_guid='default'
-        ),
+        learner=dict(user_id="my_user_id", tool_consumer_instance_guid="default"),
         collection=test_collection.collection_id,
-        sequence=[]
+        sequence=[],
     )
     log.warning("response text: {}".format(r.text))
     assert r.ok
@@ -96,13 +89,11 @@ def test_create_knowledge_component(engine_api, test_collection):
     :param test_collection:
     :return:
     """
-    KC_ID = 'kc_id'
-    KC_NAME = 'kc name'
+    KC_ID = "kc_id"
+    KC_NAME = "kc name"
     KC_MASTERY_PRIOR = 0.5
     r = engine_api.create_knowledge_component(
-        kc_id = KC_ID,
-        name = KC_NAME,
-        mastery_prior = KC_MASTERY_PRIOR
+        kc_id=KC_ID, name=KC_NAME, mastery_prior=KC_MASTERY_PRIOR
     )
     assert r.ok
 
@@ -114,8 +105,8 @@ def test_knowledge_component_id_field(engine_api, knowledge_component):
     :param knowledge_component:
     :return:
     """
-    r = engine_api.request('GET', 'knowledge_component')  # kc list endpoint
-    assert 'id' in r.json()['results'][0]
+    r = engine_api.request("GET", "knowledge_component")  # kc list endpoint
+    assert "id" in r.json()["results"][0]
 
 
 @pytest.mark.django_db
@@ -129,29 +120,26 @@ def test_bulk_update_mastery(engine_api, knowledge_component):
     """
     NEW_VALUE = 0.6
     LEARNER = {
-        'user_id': 'user_id',
-        'tool_consumer_instance_guid': 'tool_consumer_instance_guid'
+        "user_id": "user_id",
+        "tool_consumer_instance_guid": "tool_consumer_instance_guid",
     }
     data = [
         {
-            'learner': LEARNER,
-            'knowledge_component': {
-                'kc_id': knowledge_component.kc_id
-            },
-            'value': NEW_VALUE
+            "learner": LEARNER,
+            "knowledge_component": {"kc_id": knowledge_component.kc_id},
+            "value": NEW_VALUE,
         }
     ]
     r = engine_api.bulk_update_mastery(data)
     assert r.ok
 
     learner = Learner.objects.get(
-        user_id=LEARNER['user_id'],
-        tool_consumer_instance_guid=LEARNER['tool_consumer_instance_guid']
+        user_id=LEARNER["user_id"],
+        tool_consumer_instance_guid=LEARNER["tool_consumer_instance_guid"],
     )
 
     mastery = Mastery.objects.get(
-        learner=learner,
-        knowledge_component=knowledge_component
+        learner=learner, knowledge_component=knowledge_component
     )
     assert mastery.value == NEW_VALUE
 
@@ -164,11 +152,8 @@ def test_api_create_prerequisite_activity(engine_api, activities):
     :param knowledge_components:
     :return:
     """
-    data = dict(
-        from_activity=activities[1].pk,
-        to_activity=activities[0].pk
-    )
-    r = engine_api.request('POST', 'prerequisite_activity', json=data)
+    data = dict(from_activity=activities[1].pk, to_activity=activities[0].pk)
+    r = engine_api.request("POST", "prerequisite_activity", json=data)
     assert r.ok
 
 
@@ -180,7 +165,7 @@ def test_api_create_prerequisite_activity_via_field(engine_api, activities):
     :return:
     """
     data = dict(prerequisite_activities=[activities[0].pk])
-    r = engine_api.request('PATCH', 'activity/{}'.format(activities[1].pk), json=data)
+    r = engine_api.request("PATCH", "activity/{}".format(activities[1].pk), json=data)
     assert r.ok
 
 
@@ -194,24 +179,26 @@ def test_api_create_prerequisite_ka(engine_api, knowledge_components):
     data = dict(
         prerequisite=knowledge_components[0].pk,
         knowledge_component=knowledge_components[1].pk,
-        value=1.0
+        value=1.0,
     )
-    r = engine_api.request('POST', 'prerequisite_knowledge_component', json=data)
+    r = engine_api.request("POST", "prerequisite_knowledge_component", json=data)
     assert r.ok
 
 
 def test_api_grade(engine_api, sequence_test_collection):
     """
     Test that mastery-based grade generator is working
-    
+
     :param engine_api: engine api fixture
     :param knowledge_components
     """
     data = {
-        'learner': {
-            'user_id': 'user_id',
-            'tool_consumer_instance_guid': 'tool_consumer_instance_guid'
+        "learner": {
+            "user_id": "user_id",
+            "tool_consumer_instance_guid": "tool_consumer_instance_guid",
         }
     }
-    r = engine_api.request('POST', f'collection/{sequence_test_collection.collection_id}/grade', json=data)
+    r = engine_api.request(
+        "POST", f"collection/{sequence_test_collection.collection_id}/grade", json=data
+    )
     assert r.ok

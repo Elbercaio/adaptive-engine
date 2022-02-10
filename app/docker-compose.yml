@@ -1,10 +1,11 @@
 # docker-compose file for local development
 
-version: '2'
+version: "2"
 services:
   postgres:
     image: postgres
     environment:
+      POSTGRES_DB: engine
       POSTGRES_PASSWORD: postgres
     volumes:
       - pgdata:/var/lib/postgresql/data/

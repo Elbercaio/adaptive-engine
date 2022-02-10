@@ -12,10 +12,10 @@ def engine_api(db, live_server):
     :param db: https://pytest-django.readthedocs.io/en/latest/helpers.html#db
     :return: alosi.EngineApi instance
     """
-    user = User.objects.create_superuser('myuser', 'myemail@test.com', 'password')
+    user = User.objects.create_superuser("myuser", "myemail@test.com", "password")
     token = Token.objects.create(user=user)
     api = EngineApi(live_server.url, token=None)
-    api.client.headers.update({'Authorization': 'Token {}'.format(token.key)})
+    api.client.headers.update({"Authorization": "Token {}".format(token.key)})
     return api
 
 
@@ -27,14 +27,14 @@ def sequence_test_collection(db):
     :param db:
     :return: Collection model instance
     """
-    collection = Collection.objects.create(collection_id='test')
+    collection = Collection.objects.create(collection_id="test")
     # create activities and associate with collection
     problems = []
     for i in range(10):
         activity = Activity(
-            url='http://example.com/problem/{}'.format(i),
-            name='activity {}'.format(i),
-            type='problem'
+            url="http://example.com/problem/{}".format(i),
+            name="activity {}".format(i),
+            type="problem",
         )
         activity.save()
         activity.collections.add(collection)
@@ -44,9 +44,9 @@ def sequence_test_collection(db):
     readings = []
     for i in range(2):
         activity = Activity(
-            url='http://example.com/reading/{}'.format(i),
-            name='reading {}'.format(i),
-            type='html'
+            url="http://example.com/reading/{}".format(i),
+            name="reading {}".format(i),
+            type="html",
         )
         activity.save()
         activity.collections.add(collection)
@@ -57,7 +57,7 @@ def sequence_test_collection(db):
     # create activity dependencies
     activity_prerequisites = {
         problems[8]: [readings[0]],  # problem 8 requires reading 0
-        problems[9]: [readings[0],readings[1]],   # problem 9 requires reading 0 and 1
+        problems[9]: [readings[0], readings[1]],  # problem 9 requires reading 0 and 1
     }
     for dependent, prerequisites in activity_prerequisites.items():
         dependent.prerequisite_activities.set(prerequisites)
@@ -67,16 +67,14 @@ def sequence_test_collection(db):
     for i in range(2):
         kc = KnowledgeComponent(
             kc_id=i,
-            name='kc {}'.format(i),
+            name="kc {}".format(i),
             mastery_prior=0.2,
         )
         kc.save()
         kcs.append(kc)
 
     PrerequisiteRelation.objects.create(
-        prerequisite=kcs[0],
-        knowledge_component=kcs[1],
-        value=0.9
+        prerequisite=kcs[0], knowledge_component=kcs[1], value=0.9
     )
 
     # tag activities with knowledge components

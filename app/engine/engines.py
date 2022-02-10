@@ -2,7 +2,13 @@ import logging
 import random
 from django.db.models import Model
 import numpy as np
-from alosi.engine import BaseAlosiAdaptiveEngine, recommendation_score, odds, EPSILON, calculate_mastery_update
+from alosi.engine import (
+    BaseAlosiAdaptiveEngine,
+    recommendation_score,
+    odds,
+    EPSILON,
+    calculate_mastery_update,
+)
 from .data_structures import Matrix, Vector, pk_index_map, convert_pk_to_index
 from .models import *
 
@@ -20,7 +26,7 @@ def inverse_odds(x, epsilon=EPSILON):
     :param x: odds value
     :return: probability value
     """
-    p = x/(1+x)
+    p = x / (1 + x)
     p = np.minimum(np.maximum(p, epsilon), 1 - epsilon)
     return p
 
@@ -34,15 +40,17 @@ def get_tagging_matrix(activities=None, knowledge_components=None):
     :return: QxK matrix if Q and K both > 1, or vector if either Q or K = 1 TODO
     """
     if activities is None:
-        activities = Activity.objects.order_by('pk')
+        activities = Activity.objects.order_by("pk")
     # case: single model - replace idx args with querysets of len=1
     if isinstance(activities, Model):
         activities = Activity.objects.filter(pk=activities.pk)
     if isinstance(knowledge_components, Model):
-        knowledge_components = KnowledgeComponent.objects.filter(pk=knowledge_components.pk)
+        knowledge_components = KnowledgeComponent.objects.filter(
+            pk=knowledge_components.pk
+        )
     if knowledge_components is None:
-        knowledge_components = KnowledgeComponent.objects.order_by('pk')
-    pk_tuples = activities.values_list('pk', 'knowledge_components')
+        knowledge_components = KnowledgeComponent.objects.order_by("pk")
+    pk_tuples = activities.values_list("pk", "knowledge_components")
     idx = convert_pk_to_index(pk_tuples, [activities, knowledge_components])
     output_matrix = np.full((activities.count(), knowledge_components.count()), 0.0)
     # list(zip(*idx)) converts list of tuples to np-formatted array index
@@ -69,9 +77,10 @@ def get_engine(engine_settings=None):
 
 class NonAdaptiveEngine(object):
     """
-    Engine that serves only activities that have the 'nonadaptive_order' 
+    Engine that serves only activities that have the 'nonadaptive_order'
     field populated (and in the order specified by that field)
     """
+
     def __init__(self):
         pass
 
@@ -91,7 +100,7 @@ class NonAdaptiveEngine(object):
         :return: n/a
         """
 
-        activity_urls = [item['activity'] for item in sequence]
+        activity_urls = [item["activity"] for item in sequence]
         candidate_activities = collection.activity_set.exclude(url__in=activity_urls)
         return candidate_activities.first()
 
@@ -100,9 +109,10 @@ class AdaptiveEngine(BaseAlosiAdaptiveEngine):
     """
     Specific implementation of adaptive engine for django context
     """
-    
 
-    def __init__(self, engine_settings, recommendation_score_function=recommendation_score):
+    def __init__(
+        self, engine_settings, recommendation_score_function=recommendation_score
+    ):
         """
         :param engine_settings: EngineSettings model instance
         :param recommendation_score_function: function that returns a list of scores (e.g. alosi.engine.recommendation_score)
@@ -112,7 +122,9 @@ class AdaptiveEngine(BaseAlosiAdaptiveEngine):
         self.recommendation_score_function = recommendation_score_function
 
     @staticmethod
-    def get_tagging_parameter_values(model, activities=None, knowledge_components=None, default_value=0.1):
+    def get_tagging_parameter_values(
+        model, activities=None, knowledge_components=None, default_value=0.1
+    ):
         """
         Base method for retrieving parameters associated with a activity-kc relationship
         e.g. guess, slip, transit
@@ -127,9 +139,9 @@ class AdaptiveEngine(BaseAlosiAdaptiveEngine):
         """
         # default to entire set of objects if queryset not specified
         if activities is None:
-            activities = Activity.objects.order_by('pk')
+            activities = Activity.objects.order_by("pk")
         if knowledge_components is None:
-            knowledge_components = KnowledgeComponent.objects.order_by('pk')
+            knowledge_components = KnowledgeComponent.objects.order_by("pk")
 
         # retrieve parameter values
         output = Matrix(model)[activities, knowledge_components].values()
@@ -150,7 +162,9 @@ class AdaptiveEngine(BaseAlosiAdaptiveEngine):
         :param knowledge_components: KnowledgeComponent model instance or queryset
         :return: np.ndarray of size [len(activities) x len(knowledge_components)]
         """
-        return self.get_tagging_parameter_values(Guess, activities, knowledge_components, default_value=GUESS_DEFAULT)
+        return self.get_tagging_parameter_values(
+            Guess, activities, knowledge_components, default_value=GUESS_DEFAULT
+        )
 
     def get_slip(self, activities=None, knowledge_components=None):
         """
@@ -159,7 +173,9 @@ class AdaptiveEngine(BaseAlosiAdaptiveEngine):
         :param knowledge_components: KnowledgeComponent model instance or queryset
         :return: np.ndarray of size [len(activities) x len(knowledge_components)]
         """
-        return self.get_tagging_parameter_values(Slip, activities, knowledge_components, default_value=SLIP_DEFAULT)
+        return self.get_tagging_parameter_values(
+            Slip, activities, knowledge_components, default_value=SLIP_DEFAULT
+        )
 
     def get_transit(self, activities=None, knowledge_components=None):
         """
@@ -168,7 +184,9 @@ class AdaptiveEngine(BaseAlosiAdaptiveEngine):
         :param knowledge_components: KnowledgeComponent model instance or queryset
         :return: np.ndarray of size [len(activities) x len(knowledge_components)]
         """
-        return self.get_tagging_parameter_values(Transit, activities, knowledge_components, default_value=TRANSIT_DEFAULT)
+        return self.get_tagging_parameter_values(
+            Transit, activities, knowledge_components, default_value=TRANSIT_DEFAULT
+        )
 
     @staticmethod
     def get_difficulty(activities=None):
@@ -179,9 +197,9 @@ class AdaptiveEngine(BaseAlosiAdaptiveEngine):
         :return: np.array of size [len(activity) x 0]
         """
         if activities is not None:
-            output = activities.values_list('difficulty', flat=True)
+            output = activities.values_list("difficulty", flat=True)
         else:
-            output = Activity.objects.values_list('difficulty', flat=True)
+            output = Activity.objects.values_list("difficulty", flat=True)
         # convert None's to np.nan
         output = np.array([x if x is not None else np.nan for x in output])
         return output
@@ -193,7 +211,9 @@ class AdaptiveEngine(BaseAlosiAdaptiveEngine):
         :param knowledge_components: KnowledgeComponent model instance or queryset
         :return: (# LOs) x (# LOs) np.array matrix
         """
-        return Matrix(PrerequisiteRelation)[knowledge_components, knowledge_components].values()
+        return Matrix(PrerequisiteRelation)[
+            knowledge_components, knowledge_components
+        ].values()
 
     @staticmethod
     def get_last_attempted_activity(learner):
@@ -206,7 +226,7 @@ class AdaptiveEngine(BaseAlosiAdaptiveEngine):
         if not user_scores.exists():
             return None
         else:
-            return user_scores.latest('timestamp').activity
+            return user_scores.latest("timestamp").activity
 
     @staticmethod
     def get_learner_mastery(learner, knowledge_components=None):
@@ -222,7 +242,7 @@ class AdaptiveEngine(BaseAlosiAdaptiveEngine):
         """
         matrix = Matrix(Mastery)[learner, knowledge_components]
         # fill unpopulated values with appropriate kc prior values, from mastery_prior field on KC object
-        matrix_values = fill_nan_from_index_field(matrix, 'mastery_prior')
+        matrix_values = fill_nan_from_index_field(matrix, "mastery_prior")
         # convert to odds
         return matrix_values
 
@@ -242,10 +262,12 @@ class AdaptiveEngine(BaseAlosiAdaptiveEngine):
         in the full Guess/Slip/Transit matrices
         :return: ?x3 np.array of score records with columns (learner, activity, score)
         """
-        score_records = Score.objects.values_list('learner_id', 'activity_id', 'score')
+        score_records = Score.objects.values_list("learner_id", "activity_id", "score")
 
         # convert activity pk to 0-indexed id, taking into account possible non-consecutive pks
-        activity_pk_to_idx_map = pk_index_map(Activity.objects.order_by('pk'))  # map from pk to 0-index
+        activity_pk_to_idx_map = pk_index_map(
+            Activity.objects.order_by("pk")
+        )  # map from pk to 0-index
         for i, row in enumerate(score_records):
             score_records[i][1] = activity_pk_to_idx_map[row[1]]
 
@@ -264,10 +286,12 @@ class AdaptiveEngine(BaseAlosiAdaptiveEngine):
         :return:
         """
         # subset to relevant knowledge components from activity
-        knowledge_components = activity.knowledge_components.all().order_by('pk')
+        knowledge_components = activity.knowledge_components.all().order_by("pk")
         # ensure that there are knowledge components for the activity, otherwise mastery update is not relevant
         if not knowledge_components.exists():
-            log.debug("Skipping engine update from score; no tagged knowledge components found for activity.")
+            log.debug(
+                "Skipping engine update from score; no tagged knowledge components found for activity."
+            )
             return
 
         # current mastery odds for learner
@@ -281,7 +305,9 @@ class AdaptiveEngine(BaseAlosiAdaptiveEngine):
         slip = self.get_slip(activity_qset, knowledge_components).flatten()
         transit = self.get_transit(activity_qset, knowledge_components).flatten()
 
-        new_mastery_odds = calculate_mastery_update(mastery_odds, score, guess, slip, transit, EPSILON)
+        new_mastery_odds = calculate_mastery_update(
+            mastery_odds, score, guess, slip, transit, EPSILON
+        )
         # save new mastery values in mastery data store
         self.update_learner_mastery(learner, new_mastery_odds, knowledge_components)
 
@@ -294,7 +320,9 @@ class AdaptiveEngine(BaseAlosiAdaptiveEngine):
         :param new_mastery_odds: 1 x (# LOs) np.array vector of new odds mastery values
         :param knowledge_components: KnowledgeComponent queryset - KC's to update values for
         """
-        Matrix(Mastery)[learner, knowledge_components].update(inverse_odds(new_mastery_odds))
+        Matrix(Mastery)[learner, knowledge_components].update(
+            inverse_odds(new_mastery_odds)
+        )
 
     @staticmethod
     def initialize_learner(learner):
@@ -305,13 +333,16 @@ class AdaptiveEngine(BaseAlosiAdaptiveEngine):
         knowledge_components = KnowledgeComponent.objects.all()
 
         # add mastery row
-        Mastery.objects.bulk_create([
-            Mastery(
-                learner=learner,
-                knowledge_component=kc,
-                value=kc.mastery_prior,
-            ) for kc in knowledge_components
-        ])
+        Mastery.objects.bulk_create(
+            [
+                Mastery(
+                    learner=learner,
+                    knowledge_component=kc,
+                    value=kc.mastery_prior,
+                )
+                for kc in knowledge_components
+            ]
+        )
 
     def get_recommend_params(self, learner, valid_activities, valid_kcs):
         """
@@ -340,23 +371,33 @@ class AdaptiveEngine(BaseAlosiAdaptiveEngine):
         last_attempted_activity = self.get_last_attempted_activity(learner)
         if last_attempted_activity:
             # convert to queryset to avoid dimension mismatch between output and tagging matrix in get_tagging_parameter_values()
-            last_attempted_activity_qs = Activity.objects.filter(pk=last_attempted_activity.pk)
+            last_attempted_activity_qs = Activity.objects.filter(
+                pk=last_attempted_activity.pk
+            )
 
         # construct param dict
         return {
-            'guess': self.get_guess(valid_activities, valid_kcs),
-            'slip': self.get_slip(valid_activities, valid_kcs),
-            'difficulty': self.get_difficulty(valid_activities),
-            'prereqs': self.get_prereqs(valid_kcs),
-            'last_attempted_guess': self.get_guess(last_attempted_activity_qs, valid_kcs)[0] if last_attempted_activity else None,
-            'last_attempted_slip': self.get_slip(last_attempted_activity_qs, valid_kcs)[0] if last_attempted_activity else None,
-            'learner_mastery': self.get_learner_mastery(learner, valid_kcs),
-            'r_star': self.engine_settings.r_star,
-            'L_star': self.engine_settings.L_star,
-            'W_p': self.engine_settings.W_p,
-            'W_r': self.engine_settings.W_r,
-            'W_d': self.engine_settings.W_d,
-            'W_c': self.engine_settings.W_c,
+            "guess": self.get_guess(valid_activities, valid_kcs),
+            "slip": self.get_slip(valid_activities, valid_kcs),
+            "difficulty": self.get_difficulty(valid_activities),
+            "prereqs": self.get_prereqs(valid_kcs),
+            "last_attempted_guess": self.get_guess(
+                last_attempted_activity_qs, valid_kcs
+            )[0]
+            if last_attempted_activity
+            else None,
+            "last_attempted_slip": self.get_slip(last_attempted_activity_qs, valid_kcs)[
+                0
+            ]
+            if last_attempted_activity
+            else None,
+            "learner_mastery": self.get_learner_mastery(learner, valid_kcs),
+            "r_star": self.engine_settings.r_star,
+            "L_star": self.engine_settings.L_star,
+            "W_p": self.engine_settings.W_p,
+            "W_r": self.engine_settings.W_r,
+            "W_d": self.engine_settings.W_d,
+            "W_c": self.engine_settings.W_c,
         }
 
     @staticmethod
@@ -369,16 +410,20 @@ class AdaptiveEngine(BaseAlosiAdaptiveEngine):
         :return: Activity queryset
         """
         # recommendation activity scores will only be computed for valid activities
-        valid_activities = collection.activity_set.all().order_by('pk')
+        valid_activities = collection.activity_set.all().order_by("pk")
         # exclude activities already completed
         learner_scores = Score.objects.filter(learner=learner)
         valid_activities = valid_activities.exclude(score__in=learner_scores)
         # Can also exclude based on activities in provided sequence
         # somewhat redundant but this addresses non-problem activities that don't have associated grades
         # TODO would need to adjust this if we want to support activity repetition
-        valid_activities = valid_activities.exclude(pk__in=[activity.pk for activity in sequence])
+        valid_activities = valid_activities.exclude(
+            pk__in=[activity.pk for activity in sequence]
+        )
         # remove activities whose prerequisites are not satisfied yet (this should be the last filter)
-        valid_activities = valid_activities.exclude(prerequisite_activities__in=valid_activities)
+        valid_activities = valid_activities.exclude(
+            prerequisite_activities__in=valid_activities
+        )
         return valid_activities
 
     def recommendation_score(self, learner, collection, sequence=[]):
@@ -397,7 +442,7 @@ class AdaptiveEngine(BaseAlosiAdaptiveEngine):
         # get valid activities that can be recommended
         valid_activities = self.get_valid_activities(learner, collection, sequence)
         # KC set associated with the remaining valid activities
-        valid_kcs = get_kcs_in_activity_set(valid_activities).order_by('pk')
+        valid_kcs = get_kcs_in_activity_set(valid_activities).order_by("pk")
 
         # skip score calculation for base cases
         if not valid_activities.exists():
@@ -406,12 +451,16 @@ class AdaptiveEngine(BaseAlosiAdaptiveEngine):
         if len(valid_activities) == 1:
             return {valid_activities.first(): 1.0}
         if not valid_kcs.exists():
-            log.warning("No knowledge components detected for collection activities; returning random activity")
+            log.warning(
+                "No knowledge components detected for collection activities; returning random activity"
+            )
             # return random.choice(valid_activities)
             return {activity: random.random() for activity in valid_activities}
 
         # get relevant model parameters
-        recommendation_params = self.get_recommend_params(learner, valid_activities, valid_kcs)
+        recommendation_params = self.get_recommend_params(
+            learner, valid_activities, valid_kcs
+        )
 
         # compute recommendation scores for activities
         scores = self.recommendation_score_function(**recommendation_params)
@@ -434,7 +483,11 @@ class AdaptiveEngine(BaseAlosiAdaptiveEngine):
         # find highest score
         max_score = max(activity_scores.values())
         # get activity (or activities) with highest score
-        max_activities = [activity for activity, score in activity_scores.items() if score == max_score]
+        max_activities = [
+            activity
+            for activity, score in activity_scores.items()
+            if score == max_score
+        ]
         # break tie with random selection
         return random.choice(max_activities)
 
@@ -446,7 +499,7 @@ class AdaptiveEngine(BaseAlosiAdaptiveEngine):
         Formula: For each knowledge component associated with the collection's activity set,
         calculate (current mastery - prior) / (mastery threshold - prior). The overall score is the
         average of the subscores for each knowledge component.
-        
+
         :param learner: learner model instance
         :param collection: collection model instance
         :return: calculated student grade for collection
@@ -458,19 +511,22 @@ class AdaptiveEngine(BaseAlosiAdaptiveEngine):
         learner_mastery = self.get_learner_mastery(learner, kcs)
         priors = np.array([kc.mastery_prior for kc in kcs])
         # TODO may want to guard against situation where we divide by zero, by checking mastery_threshold > prior
-        score = ((np.maximum(learner_mastery, priors) - priors)/(self.mastery_threshold - priors)).mean()
-        score = min(max(score, 0.), 1.)
+        score = (
+            (np.maximum(learner_mastery, priors) - priors)
+            / (self.mastery_threshold - priors)
+        ).mean()
+        score = min(max(score, 0.0), 1.0)
         return score
+
 
 def get_kcs_in_activity_set(activities):
     """
     Given a queryset of activities, return the unique queryset of KCs activities are tagged with
     :return: Queryset of KnowledgeComponents
     """
-    valid_pks = (activities
-                 .filter(knowledge_components__isnull=False)
-                 .values_list('knowledge_components', flat=True)
-                 )
+    valid_pks = activities.filter(knowledge_components__isnull=False).values_list(
+        "knowledge_components", flat=True
+    )
     return KnowledgeComponent.objects.filter(pk__in=valid_pks)
 
 
@@ -485,13 +541,13 @@ def fill_nan_from_index_field(data, field, axis=None):
     """
     if isinstance(data, Matrix):
         if not axis:
-            raise ValueError('Axis must be specified for Matrix objects')
+            raise ValueError("Axis must be specified for Matrix objects")
         fill_values = data.axes[axis].index.values_list(field, flat=True)
     elif isinstance(data, Vector):
         fill_values = data.axis.index.values_list(field, flat=True)
         axis = 0
     else:
-        raise ValueError('data input arg not a recognized object type')
+        raise ValueError("data input arg not a recognized object type")
     values = data.values()
     nan_idxs = np.where(np.isnan(values))  # indices in matrix that are np.nan's
     values[nan_idxs] = np.take(fill_values, nan_idxs[axis])  # fill in values by column

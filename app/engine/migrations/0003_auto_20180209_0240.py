@@ -9,18 +9,25 @@ import django.db.models.deletion
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('engine', '0002_activity_url'),
+        ("engine", "0002_activity_url"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='activity',
-            name='collections',
-            field=models.ManyToManyField(blank=True, related_name='activities', to='engine.Collection'),
+            model_name="activity",
+            name="collections",
+            field=models.ManyToManyField(
+                blank=True, related_name="activities", to="engine.Collection"
+            ),
         ),
         migrations.AlterField(
-            model_name='activity',
-            name='collection',
-            field=models.ForeignKey(blank=True, on_delete=django.db.models.deletion.CASCADE, related_name='activity', to='engine.Collection'),
+            model_name="activity",
+            name="collection",
+            field=models.ForeignKey(
+                blank=True,
+                on_delete=django.db.models.deletion.CASCADE,
+                related_name="activity",
+                to="engine.Collection",
+            ),
         ),
     ]

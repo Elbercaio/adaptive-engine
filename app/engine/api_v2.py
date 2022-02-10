@@ -26,11 +26,18 @@ class ActivityViewSet(viewsets.ModelViewSet):
     Additional endpoints:
         POST /activity/recommend - recommend activity
     """
+
     queryset = Activity.objects.all()
     serializer_class = ActivitySerializer
-    filter_fields = ['url', 'name', 'collections', 'collections__collection_id', 'collections__name']
+    filter_fields = [
+        "url",
+        "name",
+        "collections",
+        "collections__collection_id",
+        "collections__name",
+    ]
 
-    @action(methods=['post'], detail=False)
+    @action(methods=["post"], detail=False)
     def recommend(self, request):
         """
         Recommends an activity
@@ -55,7 +62,11 @@ class ActivityViewSet(viewsets.ModelViewSet):
 
             }
         """
-        log.debug("Received recommendation request data (request.data): {}".format(request.data))
+        log.debug(
+            "Received recommendation request data (request.data): {}".format(
+                request.data
+            )
+        )
         # validate request serializer
         serializer = ActivityRecommendationRequestSerializer(
             data=request.data,
@@ -64,27 +75,31 @@ class ActivityViewSet(viewsets.ModelViewSet):
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         # get learner (creation of learner is supported here if learner does not already exist)
-        learner, created = Learner.objects.get_or_create(**serializer.data['learner'])
+        learner, created = Learner.objects.get_or_create(**serializer.data["learner"])
 
         # get collection
-        collection = serializer.validated_data['collection']
+        collection = serializer.validated_data["collection"]
 
         # parse sequence data
-        sequence_data = serializer.validated_data['sequence']
+        sequence_data = serializer.validated_data["sequence"]
         sequence = []
         for activity_data in sequence_data:
             try:
-                sequence.append(Activity.objects.get(url=activity_data['url']))
+                sequence.append(Activity.objects.get(url=activity_data["url"]))
             except Activity.DoesNotExist:
-                log.error("Unknown activity found in sequence data: {}".format(activity_data))
+                log.error(
+                    "Unknown activity found in sequence data: {}".format(activity_data)
+                )
         log.debug("Parsed sequence: {}".format(sequence))
         # get recommendation from engine
         recommended_activity = get_engine().recommend(learner, collection, sequence)
 
         # construct response data
         if recommended_activity:
-            recommendation_data = ActivityRecommendationSerializer(recommended_activity).data
-            recommendation_data['complete'] = False
+            recommendation_data = ActivityRecommendationSerializer(
+                recommended_activity
+            ).data
+            recommendation_data["complete"] = False
         else:
             # Indicate that learner is done with sequence
             recommendation_data = dict(
@@ -113,12 +128,13 @@ class CollectionViewSet(viewsets.ModelViewSet):
         POST /collection/{slug}/activities - modify activities in collection
         POST /collection/grade - get collection grade for a learner
     """
+
     queryset = Collection.objects.all()
     serializer_class = CollectionSerializer
-    lookup_field = 'collection_id'  # lookup based on collection_id slug field
-    filter_fields = ['collection_id', 'name']
+    lookup_field = "collection_id"  # lookup based on collection_id slug field
+    filter_fields = ["collection_id", "name"]
 
-    @action(methods=['get', 'post'], detail=True)
+    @action(methods=["get", "post"], detail=True)
     def activities(self, request, collection_id=None):
         """
         Handles two API endpoints:
@@ -155,14 +171,16 @@ class CollectionViewSet(viewsets.ModelViewSet):
             - Any activities that existed in the collection previously but are not included in the new request data will
             be removed from the collection (but not deleted from the engine).
         """
-        collection, created = Collection.objects.get_or_create(collection_id=collection_id)
+        collection, created = Collection.objects.get_or_create(
+            collection_id=collection_id
+        )
         activities = collection.activity_set.all()
-        if request.method == 'POST':
+        if request.method == "POST":
             serializer = CollectionActivitySerializer(
                 activities,
                 data=request.data,
                 many=True,
-                context={'collection': collection}
+                context={"collection": collection},
             )
             if serializer.is_valid():
                 serializer.save()
@@ -170,13 +188,11 @@ class CollectionViewSet(viewsets.ModelViewSet):
                 return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         else:
             serializer = CollectionActivitySerializer(
-                activities,
-                many=True,
-                context={'collection': collection}
+                activities, many=True, context={"collection": collection}
             )
         return Response(serializer.data)
 
-    @action(methods=['post'], detail=True)
+    @action(methods=["post"], detail=True)
     def grade(self, request, collection_id=None):
         """
         Returns a grade between 0.0 and 1.0 for the specified learner and collection.
@@ -192,7 +208,7 @@ class CollectionViewSet(viewsets.ModelViewSet):
         """
         collection = self.get_object()
         # get learner
-        serializer = LearnerSerializer(data=request.data['learner'])
+        serializer = LearnerSerializer(data=request.data["learner"])
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -200,7 +216,7 @@ class CollectionViewSet(viewsets.ModelViewSet):
         learner, created = Learner.objects.get_or_create(**serializer.data)
 
         grade = get_engine().grade(learner, collection)
-        return Response({'learner': serializer.data, 'grade': grade})
+        return Response({"learner": serializer.data, "grade": grade})
 
 
 class MasteryViewSet(viewsets.ModelViewSet):
@@ -218,11 +234,15 @@ class MasteryViewSet(viewsets.ModelViewSet):
     Additional endpoints:
         PUT /mastery/bulk_update - bulk update
     """
+
     queryset = Mastery.objects.all()
     serializer_class = MasterySerializer
-    filter_fields = ('learner', 'learner__user_id',)
+    filter_fields = (
+        "learner",
+        "learner__user_id",
+    )
 
-    @action(methods=['put'], detail=False)
+    @action(methods=["put"], detail=False)
     def bulk_update(self, request):
         """
         Receive and create list of mastery objects
@@ -252,10 +272,12 @@ class KnowledgeComponentViewSet(viewsets.ModelViewSet):
         PATCH /knowledge_component/{kc_id} - partial update
         DELETE /knowledge_component/{kc_id} - destroy
     """
+
     queryset = KnowledgeComponent.objects.all()
     serializer_class = KnowledgeComponentSerializer
-    lookup_field = 'kc_id'  # lookup based on kc_id slug field
-    filter_fields = ['kc_id', 'name']
+    lookup_field = "kc_id"  # lookup based on kc_id slug field
+    filter_fields = ["kc_id", "name"]
+
 
 class ScoreViewSet(viewsets.ModelViewSet):
     """
@@ -269,6 +291,7 @@ class ScoreViewSet(viewsets.ModelViewSet):
     Modified CRUD endpoints:
         POST /grade - create, also supports auto creation of related learners
     """
+
     queryset = Score.objects.all()
     serializer_class = ScoreSerializer
 
@@ -300,6 +323,7 @@ class PrerequisiteActivityViewSet(viewsets.ModelViewSet):
         PATCH /prerequisite_activity/{pk} - partial update
         DELETE /prerequisite_activity/{pk} - destroy
     """
+
     queryset = Activity.prerequisite_activities.through.objects.all()
     serializer_class = PrerequisiteActivitySerializer
 
@@ -316,6 +340,7 @@ class PrerequisiteKnowledgeComponentViewSet(viewsets.ModelViewSet):
         PATCH /prerequisite_knowledge_component/{pk} - partial update
         DELETE /prerequisite_knowledge_component/{pk} - destroy
     """
+
     queryset = PrerequisiteRelation.objects.all()
     serializer_class = PrerequisiteRelationSerializer
 
@@ -332,7 +357,7 @@ class CollectionActivityMemberViewSet(viewsets.ModelViewSet):
         PATCH /collection_activity/{pk} - partial update
         DELETE /collection_activity/{pk} - destroy
     """
+
     queryset = Activity.collections.through.objects.all()
     serializer_class = CollectionActivityMemberSerializer
-    filter_fields = ['collection', 'activity']
-
+    filter_fields = ["collection", "activity"]
