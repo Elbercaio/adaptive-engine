@@ -25,3 +25,5 @@ config/settings/prod.py
 
 # local config
 .env
+
+venv/
